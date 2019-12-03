@@ -13,7 +13,7 @@ namespace day1 where
   fuelRequiredByModule' mass =
     go acc mass =
       fuel = fuelRequiredByModule mass
-      if (fuel > +0) then go (acc + fuelRequiredByModule mass) fuel
+      if (fuel > +0) then go (acc + fuel) fuel
       else acc
     go +0 mass
 
