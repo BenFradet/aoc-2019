@@ -23,30 +23,24 @@ namespace day2 where
       else go (idx + 4) (instruction idx input)
     go 0 input
 
-  matrix : Nat -> Nat -> (Nat -> Nat -> a) -> [a]
-  matrix n m f =
-    uf p = case p of (i, j) ->
-      if j == m then Some (f i j, (i + 1, 1))
-      else if i == (n + 1) then None
-      else Some (f i j, (i, j + 1))
-    List.unfold (1, 1) uf
-
   replaceNV : [Nat] -> Nat -> Nat -> [Nat]
   replaceNV input nameValue verbValue =
     List.replace 1 nameValue (List.replace 2 verbValue input)
 
+  condition : [Nat] -> Nat -> Nat -> Nat -> Boolean
+  condition input neededOutput i j =
+    List.at 0 (intCode (replaceNV input i j)) == (Some neededOutput)
+
   neededOutput : [Nat] -> Nat -> Nat -> Nat -> Optional (Nat, Nat)
   neededOutput input neededOut n m =
-    mat = matrix n m (a b -> (a, b))
-    go xs = case xs of
-      [] -> None
-      (i, j) +: t ->
-        case List.at 0 (intCode (replaceNV input i j)) of
-          Some x ->
-            if (x == neededOut) then Some (i, j)
-            else go t
-          _ -> go t
-    go mat
+    uf t = case t of (i, j, f) ->
+      if f then None
+      else if j == m then Some ((i, j), (i + 1, 1, condition input neededOut i j))
+      else if i == (n + 1) then None
+      else Some ((i, j), (i, j + 1, condition input neededOut i j))
+    case List.reverse (List.unfold (1, 1, false) uf) of
+      h +: _ -> Some h
+      _ -> None
 
 use day2 intCode
 use test.v1
