@@ -1,0 +1,45 @@
+namespace day4 where
+  digits : Nat -> [Nat]
+  digits i =
+    go remainder acc =
+      newR = remainder / 10
+      if newR == 0 then remainder +: acc
+      else go newR ((Nat.mod remainder 10) +: acc)
+    go i []
+
+  sorted : [Nat] -> Boolean
+  sorted xs =
+    go prev rest = case rest of
+      h +: t -> if h < prev then false else go h t
+      _ -> true
+    case xs of
+      h +: t -> go h t
+      _ -> true
+
+  count : [Nat] -> Map Nat Nat
+  count xs =
+    f m x =
+      case Map.lookup x m of
+        Some c -> Map.insert x (c + 1) m
+        _ -> Map.insert x 1 m
+    List.foldl f Map.empty xs
+
+  contains : a -> [a] -> Boolean
+  contains a as = case as of
+    h +: t -> if h == a then true else contains a t
+    _ -> false
+
+  -- works only if sorted
+  containsAdjacents : [Nat] -> Boolean
+  containsAdjacents xs = Set.size (Set.fromList xs) < List.size xs
+
+  nbOfPasswords : Nat -> Nat -> ([Nat] -> Boolean) -> Nat
+  nbOfPasswords start end p =
+    r = if start > end then List.range end start else List.range start end
+    f c n =
+      ds = digits n
+      if p ds then c + 1 else c
+    List.foldl f 0 r
+
+> nbOfPasswords 367479 893698 (ds -> sorted ds && containsAdjacents ds)
+> nbOfPasswords 367479 893698 (ds -> sorted ds && contains 2 (Map.values (count ds)))
