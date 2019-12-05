@@ -7,7 +7,8 @@ namespace day1 where
 
   fuelRequiredByModules : [Int] -> Int
   fuelRequiredByModules masses =
-    foldl (acc m -> acc Int.+ m) +0 (map fuelRequiredByModule masses)
+    map fuelRequiredByModule masses
+      |> foldl (acc m -> acc Int.+ m) +0
 
   fuelRequiredByModule' : Int -> Int
   fuelRequiredByModule' mass =
