@@ -31,7 +31,9 @@ namespace day4 where
 
   -- works only if sorted
   containsAdjacents : [Nat] -> Boolean
-  containsAdjacents xs = Set.size (Set.fromList xs) < List.size xs
+  containsAdjacents xs =
+    Set.fromList xs
+      |> Set.size < List.size xs
 
   nbOfPasswords : Nat -> Nat -> ([Nat] -> Boolean) -> Nat
   nbOfPasswords start end p =
@@ -40,6 +42,8 @@ namespace day4 where
       ds = digits n
       if p ds then c + 1 else c
     List.foldl f 0 r
+
+use day4 contains containsAdjacents
 
 > nbOfPasswords 367479 893698 (ds -> sorted ds && containsAdjacents ds)
 > nbOfPasswords 367479 893698 (ds -> sorted ds && contains 2 (Map.values (count ds)))
