@@ -20,16 +20,19 @@ namespace day2 where
     size = List.size input
     go idx input =
       if (idx >= size) then input
-      else go (idx + 4) (instruction idx input)
+      else instruction idx input |> go (idx + 4)
     go 0 input
 
   replaceNV : [Nat] -> Nat -> Nat -> [Nat]
   replaceNV input nameValue verbValue =
-    List.replace 1 nameValue (List.replace 2 verbValue input)
+    List.replace 2 verbValue input
+      |> List.replace 1 nameValue
 
   condition : [Nat] -> Nat -> Nat -> Nat -> Boolean
   condition input neededOutput i j =
-    List.at 0 (intCode (replaceNV input i j)) == (Some neededOutput)
+    replaceNV input i j
+      |> intCode
+      |> List.at 0 == (Some neededOutput)
 
   neededOutput : [Nat] -> Nat -> Nat -> Nat -> Optional (Nat, Nat)
   neededOutput input neededOut n m =
@@ -38,7 +41,7 @@ namespace day2 where
       else if j == m then Some ((i, j), (i + 1, 1, condition input neededOut i j))
       else if i == (n + 1) then None
       else Some ((i, j), (i, j + 1, condition input neededOut i j))
-    case List.reverse (List.unfold (1, 1, false) uf) of
+    case List.unfold (1, 1, false) uf |> List.reverse of
       h +: _ -> Some h
       _ -> None
 
@@ -56,4 +59,3 @@ alarmed = List.replace 2 2 (List.replace 1 12 program)
 > List.at 0 (intCode alarmed)
 
 > neededOutput program 19690720 100 100
-
