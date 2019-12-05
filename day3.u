@@ -53,7 +53,7 @@ namespace day3 where
   closestIntersection : [(Int, Int)] -> [(Int, Int)] -> Int
   closestIntersection w1 w2 =
     inter = Set.intersect (Set.fromList w1) (Set.fromList w2)
-    dists = List.map (p -> manDist origin p) (Set.toList inter)
+    dists = Set.toList inter |> List.map (p -> manDist origin p)
     List.foldl minimum Int.maxInt dists
 
   closestIntersection' : [Text] -> [Text] -> Int
@@ -79,8 +79,9 @@ namespace day3 where
     f p = case (index reversedW1 p, index reversedW2 p) of
       (Some i1, Some i2) -> Nat.toInt (i1 + i2 + 2)
       _ -> Int.maxInt
-    dists = List.map f (Set.toList inter)
-    List.foldl minimum Int.maxInt dists
+    Set.toList inter
+      |> List.map f
+      |> List.foldl minimum Int.maxInt
 
   shortestIntersection' : [Text] -> [Text] -> Int
   shortestIntersection' w1 w2 =
