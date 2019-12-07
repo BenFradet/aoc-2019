@@ -61,6 +61,52 @@ namespace day5 where
     v = getValue (idx + 1) true input
     List.replace (abs v) (f v) input
 
+  newIntCode'' : Nat -> Nat -> [Int] -> Int
+  newIntCode'' p1 p2 input =
+    size = List.size input
+    go idx acc flag input =
+      if idx >= size then acc
+      else case List.at idx input of
+        Some op ->
+          operation = parseOp op
+          modes = Tuple.at2 operation
+          opCode = Tuple.at1 operation
+          nbParams = nbParamsPerOpCode opCode
+          case opCode of
+            1 ->
+              binaryInstr idx modes (Int.+) input
+                |> go (idx + nbParams + 1) acc flag
+            2 ->
+              binaryInstr idx modes (Int.*) input
+                |> go (idx + nbParams + 1) acc flag
+            3 ->
+              unaryInstr idx (_ -> Nat.toInt (if flag then p1 else p2)) input
+                |> go (idx + nbParams + 1) acc (not flag)
+            4 ->
+              getValue' (idx + 1) modes 0 input
+                |> (v -> go (idx + nbParams + 1) (v +: acc) flag input)
+            5 ->
+              if not ((getValue' (idx + 1) modes 0 input) == +0) then
+                go (abs (getValue' (idx + 2) modes 1 input)) acc flag input
+              else go (idx + nbParams + 1) acc flag input
+            6 ->
+              if (getValue' (idx + 1) modes 0 input) == +0 then
+                go (abs (getValue' (idx + 2) modes 1 input)) acc flag input
+              else go (idx + nbParams + 1) acc flag input
+            7 ->
+              f a b = if a < b then +1 else +0
+              binaryInstr idx modes f input
+                |> go (idx + nbParams + 1) acc flag
+            8 ->
+              f a b = if a == b then +1 else +0
+              binaryInstr idx modes f input
+                |> go (idx + nbParams + 1) acc flag
+            _ -> acc
+        _ -> acc
+    go 0 [] true input
+      |> List.at 0
+      |> Optional.orDefault +0
+
   newIntCode' : Nat -> [Int] -> [Int]
   newIntCode' parameter input =
     size = List.size input
