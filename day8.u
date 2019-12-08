@@ -11,6 +11,19 @@ namespace day8 where
   count : a -> [a] -> Nat
   count x xs = List.foldl (acc -> a -> if a == x then acc + 1 else acc) 0 xs
 
+  renderImage : Nat -> Nat -> Text -> Text
+  renderImage n m image =
+    ls = Text.toCharList image |> layers m n |> List.reverse
+    go' layers index = case layers of
+      h +: t -> case List.at index h of
+        Some x | (x == ?1) || (x == ?0) -> x
+        _ -> go' t index
+      _ -> ?2
+    go i acc =
+      if i >= (n * m) then acc
+      else go (i + 1) (go' ls i +: acc)
+    go 0 [] |> List.reverse |> List.map (c -> if c == ?0 then ?- else ?|) |> Text.fromCharList
+
   checkImage : Nat -> Nat -> Text -> Nat
   checkImage m n image =
     f res layer =
@@ -32,3 +45,6 @@ input8 = "1222212222222202121222102222222202222220222221222220012112221022221222
 > Text.toCharList input8 |> List.size
 > List.slice 0 4 (List.range 1 12)
 > Text.toCharList input8 |> List.take (150 * 6) |> layers 25 6 |> List.size
+> renderImage 2 2 "0222112222120000"
+> Text.toCharList "0222112222120000" |> layers 2 2
+> renderImage 25 6 input8
