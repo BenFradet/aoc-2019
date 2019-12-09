@@ -46,4 +46,4 @@ namespace day4 where
 use day4 contains containsAdjacents
 
 > nbOfPasswords 367479 893698 (ds -> sorted ds && containsAdjacents ds)
-> nbOfPasswords 367479 893698 (ds -> sorted ds && contains 2 (Map.values (count ds)))
+> nbOfPasswords 367479 893698 (ds -> sorted ds && contains 2 (Map.values (day4.count ds)))
