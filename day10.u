@@ -1,0 +1,180 @@
+namespace day10 where
+  gcd : Int -> Int -> Nat
+  gcd a b =
+    if b == +0 then abs a
+    else gcd b (Int.mod a b)
+
+  generateLOS : Int -> Int -> [(Int, Int)]
+  generateLOS a b =
+    if (a, b) == (+0, +0) then []
+    else
+      g = gcd a b
+      ig = Nat.toInt g
+      ia = a / ig
+      ib = b / ig
+      go acc input = case input of
+        h +: t -> go ((ia * (Nat.toInt h), ib * (Nat.toInt h)) +: acc) t
+        _ -> acc
+      List.range 1 g |> go []
+
+  updateAsteroids : Int -> Int -> Map (Int, Int) Boolean -> Map (Int, Int) Boolean
+  updateAsteroids a b map =
+    f m a =
+      if Map.contains a m then Map.insert a false m
+      else m
+    generateLOS a b
+      |> List.foldl f map
+
+  recenter : Nat -> Nat -> [(Nat, Nat)] -> [(Int, Int)]
+  recenter xc yc as =
+    go acc as = case as of
+      (x, y) +: t -> go ((x - xc, y - yc) +: acc) t
+      _ -> acc
+    go [] as
+
+  parseAsteroids : Text -> [(Nat, Nat)]
+  parseAsteroids t =
+    go acc i j input = case input of
+      h +: t ->
+        if h == ?\n then go acc 0 (j + 1) t
+        else if h == ?# then go ((i, j) +: acc) (i + 1) j t
+        else go acc (i + 1) j t
+      _ -> acc
+    Text.toCharList t
+      |> go [] 0 0
+
+  filter : (v -> Boolean) -> Map k v -> Map k v
+  filter p m =
+    go acc l = case l of
+      (k, v) +: t -> if p v then go ((k, v) +: acc) t else go acc t
+      _ -> acc
+    Map.toList m
+      |> go []
+      |> Map.fromList
+
+  detectedAsts : [(Int, Int)] -> [(Int, Int)]
+  detectedAsts asts =
+    m = List.map (p -> (p, true)) asts |> Map.fromList
+    List.foldl (m -> p -> case p of (x, y) -> updateAsteroids x y m) m asts
+      |> filter id
+      |> Map.keys
+
+  bestCenter : [(Nat, Nat)] -> ((Int, Int), Nat)
+  bestCenter asts =
+    f acc c = case c of (xc, yc) ->
+      recenter xc yc asts
+        |> detectedAsts
+        |> (ds -> ((Nat.toInt xc, Nat.toInt yc), ds) +: acc)
+    List.foldl f [] asts
+      |> List.map (p -> (Tuple.at1 p, Tuple.at2 p |> List.size))
+      |> List.foldl (old -> new -> case (old, new) of ((oldC, oldN), (newC, newN)) -> if (newN > oldN) then (newC, newN) else old) ((+0, +0), 0)
+
+  detectedAstsNb : Text -> ((Int, Int), Nat)
+  detectedAstsNb t =
+    parseAsteroids t |> bestCenter
+
+> gcd +9 +3
+> gcd -9 -6
+> gcd -6 -9
+> gcd +15 +13
+
+> generateLOS +9 +3
+> generateLOS +3 +0
+> generateLOS +0 +3
+> generateLOS +0 +0
+
+> recenter 1 2 [(0, 0), (0, 1), (1, 0), (1, 1), (2, 1), (1, 2), (2, 2)]
+
+--> detectedAstsNb ".#..#
+--.....
+--#####
+--....#
+--...##"
+--
+--> detectedAstsNb "......#.#.
+--#..#.#....
+--..#######.
+--.#.#.###..
+--.#..#.....
+--..#....#.#
+--#..#....#.
+--.##.#..###
+--##...#..#.
+--.#....####"
+--
+--> detectedAstsNb "#.#...#.#.
+--.###....#.
+--.#....#...
+--##.#.#.#.#
+--....#.#.#.
+--.##..###.#
+--..#...##..
+--..##....##
+--......#...
+--.####.###."
+--
+--> detectedAstsNb ".#..#..###
+--####.###.#
+--....###.#.
+--..###.##.#
+--##.##.#.#.
+--....###..#
+--..#.#..#.#
+--#..#.#.###
+--.##...##.#
+--.....#.#.."
+--
+--> detectedAstsNb ".#..##.###...#######
+--##.############..##.
+--.#.######.########.#
+--.###.#######.####.#.
+--#####.##.#.##.###.##
+--..#####..#.#########
+--####################
+--#.####....###.#.#.##
+--##.#################
+--#####.##.###..####..
+--..######..##.#######
+--####.##.####...##..#
+--.#####..#.######.###
+--##...#.##########...
+--#.##########.#######
+--.####.#.###.###.#.##
+--....##.##.###..#####
+--.#.#.###########.###
+--#.#.#.#####.####.###
+--###.##.####.##.#..##"
+
+> detectedAstsNb ".#......##.#..#.......#####...#..
+...#.....##......###....#.##.....
+..#...#....#....#............###.
+.....#......#.##......#.#..###.#.
+#.#..........##.#.#...#.##.#.#.#.
+..#.##.#...#.......#..##.......##
+..#....#.....#..##.#..####.#.....
+#.............#..#.........#.#...
+........#.##..#..#..#.#.....#.#..
+.........#...#..##......###.....#
+##.#.###..#..#.#.....#.........#.
+.#.###.##..##......#####..#..##..
+.........#.......#.#......#......
+..#...#...#...#.#....###.#.......
+#..#.#....#...#.......#..#.#.##..
+#.....##...#.###..#..#......#..##
+...........#...#......#..#....#..
+#.#.#......#....#..#.....##....##
+..###...#.#.##..#...#.....#...#.#
+.......#..##.#..#.............##.
+..###........##.#................
+###.#..#...#......###.#........#.
+.......#....#.#.#..#..#....#..#..
+.#...#..#...#......#....#.#..#...
+#.#.........#.....#....#.#.#.....
+.#....#......##.##....#........#.
+....#..#..#...#..##.#.#......#.#.
+..###.##.#.....#....#.#......#...
+#.##...#............#..#.....#..#
+.#....##....##...#......#........
+...#...##...#.......#....##.#....
+.#....#.#...#.#...##....#..##.#.#
+.#.#....##.......#.....##.##.#.##"
