@@ -1,0 +1,133 @@
+type RState = {
+  program : Map Int Int,
+  pointer : Int,
+  base : Int,
+  input : Int,
+  out : Map (Int, Int) Boolean,
+  pos: (Int, Int),
+  angle : Int,
+  paint : Boolean
+}
+
+namespace day11 where
+  dir : Int -> (Int, Int)
+  dir angle = case angle of
+    x | (x == +90 || (x == -270)) -> (-1, +0)
+    x | (abs x == 180) -> (+0, -1)
+    x | (x == +270 || (x == -90)) -> (+1, +0)
+    _ -> (+0, +1)
+
+  updatePos : Int -> (Int, Int) -> (Int, Int)
+  updatePos angle pos = dir angle |> day3.add pos
+
+  updateInput : (Int, Int) -> Map (Int, Int) Boolean -> Int
+  updateInput pos output =
+    Map.lookup pos output
+      |> Optional.map (b -> if b then +1 else +0)
+      |> Optional.orDefault +0
+
+  updateOutput : Int -> RState -> RState
+  updateOutput out s =
+    newS =
+      if RState.paint s then
+        RState.out.modify (m -> Map.insert (RState.pos s) (out == +1) m) s
+      else
+        angleUpdate = if out == +1 then -90 else +90
+        RState.angle.modify (a -> Int.mod (a + angleUpdate) +360) s
+          |> (ns -> RState.pos.modify (updatePos (RState.angle ns)) ns)
+          |> (ns -> RState.input.modify (_ -> updateInput (RState.pos ns) (RState.out ns)) ns)
+    newS |> RState.paint.modify (not)
+
+  rRightPad : Int -> RState -> Int
+  rRightPad i s = (RState.pointer s) + i
+
+  rImmediate : Int -> RState -> Int
+  rImmediate i s =
+    RState.program s
+      |> Map.lookup (rRightPad i s)
+      |> Optional.orDefault +0
+
+  rPosition : Int -> RState -> Int
+  rPosition i s =
+    RState.program s
+      |> Map.lookup (rImmediate i s)
+      |> Optional.orDefault +0
+
+  rRelative : Int -> RState -> Int
+  rRelative i s =
+    RState.program s
+      |> Map.lookup ((rImmediate i s) + (RState.base s))
+      |> Optional.orDefault +0
+
+  rPos : Int -> [Nat] -> RState -> Int
+  rPos i modes s =
+    case List.at (abs (i + -1)) modes of
+      Some 0 -> rPosition i s
+      Some 1 -> rImmediate i s
+      Some 2 -> rRelative i s
+      _ -> +0
+
+  rNonPos : Int -> [Nat] -> RState -> Int
+  rNonPos i modes s =
+    case List.at (abs (i + -1)) modes of
+      Some 0 -> rImmediate i s
+      Some 2 -> (rImmediate i s) + (RState.base s)
+      _ -> +0
+
+  rBinary : (Int -> Int -> Int) -> [Nat] -> RState -> RState
+  rBinary f modes s =
+    RState.program.modify (Map.insert (rNonPos +3 modes s) (f (rPos +1 modes s) (rPos +2 modes s))) s
+      |> RState.pointer.modify (p -> p + +4)
+
+  rBranch : (Int -> Boolean) -> [Nat] -> RState -> RState
+  rBranch f modes s =
+    RState.pointer.modify (_ -> if f (rPos +1 modes s) then rPos +2 modes s else rRightPad +3 s) s
+
+  rStore : (Int -> Int -> Boolean) -> [Nat] -> RState -> RState
+  rStore f modes s =
+    RState.program.modify (Map.insert (rNonPos +3 modes s) (if f (rPos +1 modes s) (rPos +2 modes s) then +1 else +0)) s
+      |> RState.pointer.modify (p -> p + +4)
+
+  rParseOp : RState -> (Nat, [Nat])
+  rParseOp s =
+    opCodeAbs = abs (rImmediate +0 s)
+    op = Nat.mod opCodeAbs 100
+    remainder = opCodeAbs / 100
+    parameters = day4.digits remainder
+    nbParams = nbParamsPerOpCode op
+    (op, List.reverse (fill nbParams 0 parameters))
+
+  rIntCode : [Int] -> Map (Int, Int) Boolean
+  rIntCode p =
+    program =
+      List.indexed p
+        |> List.map (p -> case p of (e, i) -> (Nat.toInt i, e))
+        |> Map.fromList
+    go s =
+      case rParseOp s of
+        (op, modes) -> case op of
+          1 -> rBinary (Int.+) modes s |> go
+          2 -> rBinary (Int.*) modes s |> go
+          3 ->
+            RState.program.modify (Map.insert (rNonPos +1 modes s) (RState.input s)) s
+              |> RState.pointer.modify (p -> p + +2)
+              |> go
+          4 ->
+            RState.pointer.modify (p -> p + +2) s
+              |> updateOutput (rPos +1 modes s)
+              |> go
+          5 -> rBranch (i -> not (i == +0)) modes s |> go
+          6 -> rBranch (i -> i == +0) modes s |> go
+          7 -> rStore Int.lt modes s |> go
+          8 -> rStore (Int.==) modes s |> go
+          9 ->
+            RState.base.modify (b -> b + rPos +1 modes s) s
+              |> RState.pointer.modify (p -> p + +2)
+              |> go
+          99 -> RState.out s
+          _ -> RState.out s
+    go (RState.RState program +0 +0 +0 Map.empty (+0, +0) +0 true)
+
+input11 = [+3,+8,+1005,+8,+320,+1106,+0,+11,+0,+0,+0,+104,+1,+104,+0,+3,+8,+102,-1,+8,+10,+101,+1,+10,+10,+4,+10,+1008,+8,+1,+10,+4,+10,+1001,+8,+0,+29,+2,+101,+10,+10,+3,+8,+102,-1,+8,+10,+1001,+10,+1,+10,+4,+10,+108,+1,+8,+10,+4,+10,+101,+0,+8,+54,+2,+3,+16,+10,+3,+8,+1002,+8,-1,+10,+101,+1,+10,+10,+4,+10,+1008,+8,+0,+10,+4,+10,+102,+1,+8,+81,+1006,+0,+75,+3,+8,+1002,+8,-1,+10,+1001,+10,+1,+10,+4,+10,+108,+0,+8,+10,+4,+10,+101,+0,+8,+105,+3,+8,+102,-1,+8,+10,+1001,+10,+1,+10,+4,+10,+1008,+8,+1,+10,+4,+10,+1001,+8,+0,+128,+3,+8,+1002,+8,-1,+10,+1001,+10,+1,+10,+4,+10,+108,+0,+8,+10,+4,+10,+102,+1,+8,+149,+1,+105,+5,+10,+1,+105,+20,+10,+3,+8,+102,-1,+8,+10,+101,+1,+10,+10,+4,+10,+108,+0,+8,+10,+4,+10,+1002,+8,+1,+179,+1,+101,+1,+10,+2,+109,+8,+10,+1006,+0,+74,+3,+8,+1002,+8,-1,+10,+101,+1,+10,+10,+4,+10,+1008,+8,+1,+10,+4,+10,+1001,+8,+0,+213,+1006,+0,+60,+2,+1105,+9,+10,+1,+1005,+11,+10,+3,+8,+1002,+8,-1,+10,+101,+1,+10,+10,+4,+10,+108,+1,+8,+10,+4,+10,+1002,+8,+1,+245,+1,+6,+20,+10,+1,+1103,+11,+10,+2,+6,+11,+10,+2,+1103,+0,+10,+3,+8,+1002,+8,-1,+10,+101,+1,+10,+10,+4,+10,+1008,+8,+0,+10,+4,+10,+1002,+8,+1,+284,+2,+1103,+12,+10,+2,+1104,+14,+10,+2,+1004,+12,+10,+2,+1009,+4,+10,+101,+1,+9,+9,+1007,+9,+968,+10,+1005,+10,+15,+99,+109,+642,+104,+0,+104,+1,+21102,+1,+48063419288,+1,+21102,+1,+337,+0,+1105,+1,+441,+21101,+0,+846927340300,+1,+21101,+0,+348,+0,+1105,+1,+441,+3,+10,+104,+0,+104,+1,+3,+10,+104,+0,+104,+0,+3,+10,+104,+0,+104,+1,+3,+10,+104,+0,+104,+1,+3,+10,+104,+0,+104,+0,+3,+10,+104,+0,+104,+1,+21102,+1,+235245104151,+1,+21102,+395,+1,+0,+1105,+1,+441,+21102,+29032123584,+1,+1,+21101,+0,+406,+0,+1105,+1,+441,+3,+10,+104,+0,+104,+0,+3,+10,+104,+0,+104,+0,+21101,+0,+709047878500,+1,+21101,+429,+0,+0,+1106,+0,+441,+21101,+868402070284,+0,+1,+21102,+1,+440,+0,+1105,+1,+441,+99,+109,+2,+22102,+1,-1,+1,+21101,+40,+0,+2,+21101,+0,+472,+3,+21102,+462,+1,+0,+1105,+1,+505,+109,-2,+2106,+0,+0,+0,+1,+0,+0,+1,+109,+2,+3,+10,+204,-1,+1001,+467,+468,+483,+4,+0,+1001,+467,+1,+467,+108,+4,+467,+10,+1006,+10,+499,+1102,+1,+0,+467,+109,-2,+2106,+0,+0,+0,+109,+4,+2101,+0,-1,+504,+1207,-3,+0,+10,+1006,+10,+522,+21101,+0,+0,-3,+22101,+0,-3,+1,+21202,-2,+1,+2,+21101,+1,+0,+3,+21102,+541,+1,+0,+1106,+0,+546,+109,-4,+2106,+0,+0,+109,+5,+1207,-3,+1,+10,+1006,+10,+569,+2207,-4,-2,+10,+1006,+10,+569,+21202,-4,+1,-4,+1105,+1,+637,+22102,+1,-4,+1,+21201,-3,-1,+2,+21202,-2,+2,+3,+21101,+588,+0,+0,+1105,+1,+546,+22102,+1,+1,-4,+21101,+0,+1,-1,+2207,-4,-2,+10,+1006,+10,+607,+21101,+0,+0,-1,+22202,-2,-1,-2,+2107,+0,-3,+10,+1006,+10,+629,+21201,-1,+0,+1,+21102,+629,+1,+0,+106,+0,+504,+21202,-2,-1,-2,+22201,-4,-2,-4,+109,-5,+2105,+1,+0]
+
+> day11.rIntCode input11 |> Map.toList |> List.size
