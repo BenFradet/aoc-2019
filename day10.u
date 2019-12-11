@@ -73,6 +73,81 @@ namespace day10 where
   detectedAstsNb t =
     parseAsteroids t |> bestCenter
 
+  difference : Set a -> Set a -> Set a
+  difference a b =
+    go acc as = case as of
+      h +: t -> if Set.contains h b then go t acc else go t (h +: acc)
+      _ -> acc
+    Set.toList a |> go [] |> Set.fromList
+
+  length : (Float, Float) -> Float
+  length p = case p of (x, y) ->
+    ((Float.pow x 2.0) + (Float.pow y 2.0)) |> Float.sqrt
+
+  pi : Float
+  pi = 3.14159
+
+  dotP : (Float, Float) -> (Float, Float) -> Float
+  dotP p1 p2 = case (p1, p2) of ((x1, y1), (x2, y2)) -> x1 * x2 + y1 * y2
+
+  diffP : (Float, Float) -> (Float, Float) -> Float
+  diffP p1 p2 = case (p1, p2) of ((x1, y1), (x2, y2)) -> y2 * x1 - x2 * y1
+
+  merge : (a -> Float) -> [a] -> [a] -> [a]
+  merge f xs ys = case (xs, ys) of
+    ([], t) -> t
+    (t, []) -> t
+    (hx +: tx, hy +: ty) -> if (f hx) <= (f hy) then hx +: merge f tx ys else hy +: merge f xs ty
+
+  split : [a] -> ([a], [a])
+  split xs = case xs of
+    [h1, h2] ++ t -> case split t of (t1, t2) -> (h1 +: t1, h2 +: t2)
+    [h] -> ([h], [])
+    _ -> ([], [])
+
+  mergeSort : (a -> Float) -> [a] -> [a]
+  mergeSort f xs = case xs of
+    [] -> []
+    [x] -> [x]
+    t -> case split t of (as, bs) -> merge f (mergeSort f as) (mergeSort f bs)
+
+  sort : (Int, Int) -> Float
+  sort p = case p of (x, y) ->
+    fx = Int.toFloat x
+    fy = Int.toFloat y
+    len = length (fx, fy)
+    ref = (0.0, 1.0)
+    if len == 0.0 then (0.0 - pi)
+    else
+      nx = fx / len
+      ny = fy / len
+      dot = dotP (nx, ny) ref
+      diff = diffP (nx, ny) ref
+      angle = Float.atan2 diff dot
+      if angle < 0.0 then (2.0 * pi + angle)
+      else (angle)
+
+  --destroyAsts : Nat -> Text -> Optional (Int, Int)
+  destroyAsts n t =
+    asts = parseAsteroids t
+    c = asts |> bestCenter |> Tuple.at1
+    recentered = recenter (Tuple.at1 c |> abs) (Tuple.at2 c |> abs) asts
+    go i acc asts =
+      if i >= n then acc
+      else
+        detected = detectedAsts asts |> List.sortBy day10.sort
+        s = List.size detected
+        if i + s >= n then List.slice 0 (abs (n - i + +1)) detected
+        else go (i + s) (acc ++ detected) (Set.fromList detected |> difference (Set.fromList asts) |> Set.toList)
+    go 0 [] recentered
+      |> List.map (p -> case p of (x, y) -> (x + (Tuple.at1 c), y + (Tuple.at2 c)))
+      |> List.take n
+      --|> List.at (abs (n - 1))
+      --|> Optional.map (p -> case p of (x, y) -> (x + (Tuple.at1 c), y + (Tuple.at2 c)))
+
+> mergeSort day10.sort [(+3, +2), (-1, +2), (-3, +2)]
+> List.sortBy day10.sort [(+3, +2), (-1, +2), (-3, +2)]
+
 > gcd +9 +3
 > gcd -9 -6
 > gcd -6 -9
@@ -145,7 +220,7 @@ namespace day10 where
 --#.#.#.#####.####.###
 --###.##.####.##.#..##"
 
-> detectedAstsNb ".#......##.#..#.......#####...#..
+input10 = ".#......##.#..#.......#####...#..
 ...#.....##......###....#.##.....
 ..#...#....#....#............###.
 .....#......#.##......#.#..###.#.
@@ -178,3 +253,5 @@ namespace day10 where
 ...#...##...#.......#....##.#....
 .#....#.#...#.#...##....#..##.#.#
 .#.#....##.......#.....##.##.#.##"
+
+> destroyAsts 200 input10
