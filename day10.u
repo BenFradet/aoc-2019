@@ -125,9 +125,9 @@ namespace day10 where
       diff = diffP (nx, ny) ref
       angle = Float.atan2 diff dot
       if angle < 0.0 then (2.0 * pi + angle)
-      else (angle)
+      else angle
 
-  --destroyAsts : Nat -> Text -> Optional (Int, Int)
+  destroyAsts : Nat -> Text -> Optional (Int, Int)
   destroyAsts n t =
     asts = parseAsteroids t
     c = asts |> bestCenter |> Tuple.at1
@@ -137,12 +137,11 @@ namespace day10 where
       else
         detected = detectedAsts asts |> List.sortBy day10.sort
         s = List.size detected
-        if i + s >= n then List.slice 0 (abs (n - i + +1)) detected
-        else go (i + s) (acc ++ detected) (Set.fromList detected |> difference (Set.fromList asts) |> Set.toList)
+        go (i + s) (acc ++ detected) (Set.fromList detected |> difference (Set.fromList asts) |> Set.toList)
     go 0 [] recentered
       |> List.map (p -> case p of (x, y) -> (x + (Tuple.at1 c), y + (Tuple.at2 c)))
       |> List.take n
-      --|> List.at (abs (n - 1))
+      |> List.at (abs (n - 1))
       --|> Optional.map (p -> case p of (x, y) -> (x + (Tuple.at1 c), y + (Tuple.at2 c)))
 
 > mergeSort day10.sort [(+3, +2), (-1, +2), (-3, +2)]
@@ -219,6 +218,8 @@ namespace day10 where
 --.#.#.###########.###
 --#.#.#.#####.####.###
 --###.##.####.##.#..##"
+
+---
 
 input10 = ".#......##.#..#.......#####...#..
 ...#.....##......###....#.##.....
