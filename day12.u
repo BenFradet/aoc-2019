@@ -1,0 +1,93 @@
+type Planet = {pos: [Int], vel: [Int]}
+
+gInc : (Int, Int) -> Int
+gInc p = case p of (x1, x2) ->
+  if x1 > x2 then -1
+  else if x1 < x2 then +1
+  else +0
+
+gravity : [Int] -> [Int] -> [Int]
+gravity as bs = List.zip as bs |> List.map (v -> gInc v)
+
+add : [Int] -> [Int] -> [Int]
+add as bs = List.zip as bs |> List.map (p -> case p of (pa, pb) -> pa Int.+ pb)
+
+applyGravity : Planet -> Planet -> (Planet, Planet)
+applyGravity p1 p2 =
+  (
+    Planet.vel.modify (v -> add v (gravity (Planet.pos p1) (Planet.pos p2))) p1,
+    Planet.vel.modify (v -> add v (gravity (Planet.pos p2) (Planet.pos p1))) p2
+  )
+
+applyVelocity : Planet -> Planet
+applyVelocity p =
+  Planet.pos.modify (v -> add v (Planet.vel p)) p
+
+absSum : [Int] -> Nat
+absSum as = List.map abs as |> List.foldl (Nat.+) 0
+
+pot : Planet -> Nat
+pot p = Planet.pos p |> absSum
+
+kin : Planet -> Nat
+kin p = Planet.vel p |> absSum
+
+planetEnergy : Planet -> Nat
+planetEnergy p = (kin p) * (pot p)
+
+systemEnergy : [Planet] -> Nat
+systemEnergy ps = List.map planetEnergy ps |> List.foldl (Nat.+) 0
+
+generatePairs : [a] -> [(a, a)]
+generatePairs as =
+  go as acc = case as of
+    h +: t -> go t ((go' h t []) ++ acc)
+    _ -> acc
+  go' e as acc = case as of
+    h +: t -> go' e t ((e, h) +: acc)
+    _ -> acc
+  go as []
+
+mapValues : (v1 -> v2) -> Map k v1 -> Map k v2
+mapValues f m =
+  Map.toList m
+    |> List.map (p -> case p of (k, v) -> (k, f v))
+    |> Map.fromList
+
+--energy : [Planet] -> Nat -> [Nat]
+energy ps t =
+  pairs = List.size ps |> List.range 0 |> generatePairs
+  ips = List.indexed ps |> List.map (p -> case p of (v, k) -> (k, v)) |> Map.fromList
+  foldr m p = case p of (i, j) ->
+    case (Map.lookup i m, Map.lookup j m) of
+      (Some p1, Some p2) ->
+        case applyGravity p1 p2 of (newP1, newP2) -> Map.insert i newP1 m |> Map.insert j newP2
+      _ -> m
+  f p = case p of (i, m) ->
+    if i >= t then None
+    else
+      newM = List.foldl foldr m pairs |> mapValues applyVelocity
+      --Some (Map.values newM, (i + 1, newM))
+      Some (Map.values newM |> systemEnergy, (i + 1, newM))
+  List.unfold (0, ips) f
+
+> List.range 1 5 |> generatePairs
+> List.range 1 5 |> List.indexed
+> energy [
+  Planet.Planet [-1, -0, +2]  [+0, +0, +0],
+  Planet.Planet [+2, -10, -7] [+0, +0, +0],
+  Planet.Planet [+4, -8, +8]  [+0, +0, +0],
+  Planet.Planet [+3, +5, -1]  [+0, +0, +0]
+] 10
+> energy [
+  Planet.Planet [-8, -10, +0] [+0, +0, +0],
+  Planet.Planet [+5, +5, +10] [+0, +0, +0],
+  Planet.Planet [+2, -7, +3]  [+0, +0, +0],
+  Planet.Planet [+9, -8, -3]  [+0, +0, +0]
+] 100 |> List.at 99
+> energy [
+  Planet.Planet [+8, +0, +8]   [+0, +0, +0],
+  Planet.Planet [+0, -5, -10]  [+0, +0, +0],
+  Planet.Planet [+16, +10, -5] [+0, +0, +0],
+  Planet.Planet [+19, -10, -7] [+0, +0, +0]
+] 1000 |> List.at 999
