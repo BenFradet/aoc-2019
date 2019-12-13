@@ -1,4 +1,4 @@
-type Planet = {pos: [Int], vel: [Int]}
+--type Planet = {pos: [Int], vel: [Int]}
 
 gInc : (Int, Int) -> Int
 gInc p = case p of (x1, x2) ->
@@ -54,7 +54,7 @@ mapValues f m =
     |> List.map (p -> case p of (k, v) -> (k, f v))
     |> Map.fromList
 
---energy : [Planet] -> Nat -> [Nat]
+energy : [Planet] -> Nat -> [Nat]
 energy ps t =
   pairs = List.size ps |> List.range 0 |> generatePairs
   ips = List.indexed ps |> List.map (p -> case p of (v, k) -> (k, v)) |> Map.fromList
@@ -67,27 +67,75 @@ energy ps t =
     if i >= t then None
     else
       newM = List.foldl foldr m pairs |> mapValues applyVelocity
-      --Some (Map.values newM, (i + 1, newM))
       Some (Map.values newM |> systemEnergy, (i + 1, newM))
   List.unfold (0, ips) f
 
+move : [Planet] -> [Planet]
+move ps =
+  pairs = List.size ps |> List.range 0 |> generatePairs
+  ips = List.indexed ps |> List.map (p -> case p of (v, k) -> (k, v)) |> Map.fromList
+  foldr m p = case p of (i, j) ->
+    case (Map.lookup i m, Map.lookup j m) of
+      (Some p1, Some p2) ->
+        case applyGravity p1 p2 of (newP1, newP2) -> Map.insert i newP1 m |> Map.insert j newP2
+      _ -> m
+  List.foldl foldr ips pairs |> Map.values |> List.map applyVelocity
+
+cycleLength : [a] -> ([a] -> [a]) -> (a -> b) -> [Nat]
+cycleLength as f g =
+  uf q = case q of (i, m, p) ->
+    fp = f p
+    gp = List.map g fp
+    if Map.contains gp m then None
+    else
+      newM = Map.insert gp true m
+      Some(i + 1, (i + 1, newM, fp))
+  List.unfold (0, Map.empty, f as) uf |> List.reverse |> List.take 1
+
+gcd : Nat -> Nat -> Nat
+gcd a b =
+  if b == 0 then a
+  else gcd b (Nat.mod a b)
+lcm : Nat -> Nat -> Nat
+lcm a b = a * b / (gcd a b)
+
+nrSteps : [Planet] -> Nat
+nrSteps ps =
+  clx = cycleLength ps move (p -> (Planet.pos p |> List.unsafeAt 0, Planet.vel p |> List.unsafeAt 0)) |> List.unsafeAt 0
+  cly = cycleLength ps move (p -> (Planet.pos p |> List.unsafeAt 1, Planet.vel p |> List.unsafeAt 1)) |> List.unsafeAt 0
+  clz = cycleLength ps move (p -> (Planet.pos p |> List.unsafeAt 2, Planet.vel p |> List.unsafeAt 2)) |> List.unsafeAt 0
+  lcm (lcm clx cly) clz
+
 > List.range 1 5 |> generatePairs
 > List.range 1 5 |> List.indexed
+zero = [+0, +0, +0]
+> move [
+  Planet.Planet [-1, -0, +2]  zero,
+  Planet.Planet [+2, -10, -7] zero,
+  Planet.Planet [+4, -8, +8]  zero,
+  Planet.Planet [+3, +5, -1]  zero
+]
 > energy [
-  Planet.Planet [-1, -0, +2]  [+0, +0, +0],
-  Planet.Planet [+2, -10, -7] [+0, +0, +0],
-  Planet.Planet [+4, -8, +8]  [+0, +0, +0],
-  Planet.Planet [+3, +5, -1]  [+0, +0, +0]
+  Planet.Planet [-1, -0, +2]  zero,
+  Planet.Planet [+2, -10, -7] zero,
+  Planet.Planet [+4, -8, +8]  zero,
+  Planet.Planet [+3, +5, -1]  zero
 ] 10
 > energy [
-  Planet.Planet [-8, -10, +0] [+0, +0, +0],
-  Planet.Planet [+5, +5, +10] [+0, +0, +0],
-  Planet.Planet [+2, -7, +3]  [+0, +0, +0],
-  Planet.Planet [+9, -8, -3]  [+0, +0, +0]
+  Planet.Planet [-8, -10, +0] zero,
+  Planet.Planet [+5, +5, +10] zero,
+  Planet.Planet [+2, -7, +3]  zero,
+  Planet.Planet [+9, -8, -3]  zero
 ] 100 |> List.at 99
 > energy [
-  Planet.Planet [+8, +0, +8]   [+0, +0, +0],
-  Planet.Planet [+0, -5, -10]  [+0, +0, +0],
-  Planet.Planet [+16, +10, -5] [+0, +0, +0],
-  Planet.Planet [+19, -10, -7] [+0, +0, +0]
+  Planet.Planet [+8, +0, +8]   zero,
+  Planet.Planet [+0, -5, -10]  zero,
+  Planet.Planet [+16, +10, -5] zero,
+  Planet.Planet [+19, -10, -7] zero
 ] 1000 |> List.at 999
+> nrSteps [
+  Planet.Planet [+8, +0, +8]   zero,
+  Planet.Planet [+0, -5, -10]  zero,
+  Planet.Planet [+16, +10, -5] zero,
+  Planet.Planet [+19, -10, -7] zero
+]
