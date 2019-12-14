@@ -133,9 +133,9 @@ zero = [+0, +0, +0]
   Planet.Planet [+16, +10, -5] zero,
   Planet.Planet [+19, -10, -7] zero
 ] 1000 |> List.at 999
-> nrSteps [
-  Planet.Planet [+8, +0, +8]   zero,
-  Planet.Planet [+0, -5, -10]  zero,
-  Planet.Planet [+16, +10, -5] zero,
-  Planet.Planet [+19, -10, -7] zero
-]
+--> nrSteps [
+--  Planet.Planet [+8, +0, +8]   zero,
+--  Planet.Planet [+0, -5, -10]  zero,
+--  Planet.Planet [+16, +10, -5] zero,
+--  Planet.Planet [+19, -10, -7] zero
+--]
