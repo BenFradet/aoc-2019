@@ -1,0 +1,27 @@
+type Reaction = { inputs : [(Text, Int)], output: (Text, Int) }
+
+getFuel : Int -> Map Text (Int, Map Text Int) -> Int
+getFuel fuel reactions =
+  go : Text -> Int -> Map Text Int -> (Int, Map Text Int)
+  go c n rem = case c of
+    "ORE" -> (n, rem)
+    _ ->
+      q = Map.lookup c rem |> Optional.orDefault +0
+      nWithoutExcess = if n - q > +0 then (n - q) else +0
+      nFromExcess = n - nWithoutExcess
+      newRem = Map.insert c (q - nFromExcess) rem
+      case Map.lookup c reactions of
+        Some (out, ins) ->
+          mod = Int.mod nWithoutExcess out
+          p = if mod == +0 then (nWithoutExcess / out, +0) else (nWithoutExcess / out + +1, out - mod)
+          p2 = Map.toList ins |> List.foldl ( acc -> e -> case (acc, e) of ((ore, excess), (inC, inN)) -> case go inC ((Tuple.at1 p) * inN) excess of (inOre, inExcess) -> (ore + inOre, inExcess)) (+0, newRem)
+          (Tuple.at1 p2, Map.insert c ((Map.lookup c (Tuple.at2 p2) |> Optional.orDefault +0) + (Tuple.at2 p)) (Tuple.at2 p2))
+        _ -> (+0, Map.empty)
+  go "FUEL" fuel Map.empty |> Tuple.at1
+
+input14 = [Reaction.Reaction [("DGXQJ", +4)] ("QNMV", +5),Reaction.Reaction [("WHSGM", +10)] ("LFXWM", +6),Reaction.Reaction [("XRJH", +3), ("FVRFC", +15), ("DGXQJ", +19), ("BZWFZ", +2), ("XDQG", +8), ("LFXWM", +1), ("CDRP", +6)] ("LWKJL", +1),Reaction.Reaction [("TLGRN", +1)] ("BDPJD", +5),Reaction.Reaction [("DBGK", +1), ("DTWF", +5)] ("FVRFC", +3),Reaction.Reaction [("NMWGH", +7)] ("CGRFH", +9),Reaction.Reaction [("TLRZ", +1)] ("XRJH", +2),Reaction.Reaction [("RGRHS", +1)] ("WSGW", +7),Reaction.Reaction [("DGXQJ", +1), ("PWXFD", +15), ("XRJH", +9)] ("LGVS", +4),Reaction.Reaction [("QHGP", +5), ("WHSGM", +1)] ("DBGK", +7),Reaction.Reaction [("RHKVX", +1)] ("CDRP", +5),Reaction.Reaction [("VMVJS", +6)] ("VFVBP", +5),Reaction.Reaction [("WSGW", +1)] ("PGBK", +6),Reaction.Reaction [("FXLD", +1), ("VMVJS", +1)] ("PGJC", +8),Reaction.Reaction [("WCWLK", +4)] ("KCHWM", +1),Reaction.Reaction [("XDQG", +11)] ("QMVLD", +2),Reaction.Reaction [("ORE", +137)] ("KRSK", +4),Reaction.Reaction [("KRSK", +4)] ("HSCF", +5),Reaction.Reaction [("KRSK", +1)] ("XPGP", +7),Reaction.Reaction [("BZWFZ", +4), ("TLGRN", +1), ("CTBV", +6)] ("CPXLQ", +1),Reaction.Reaction [("WNVTR", +9), ("FVRFC", +3), ("CTBV", +6)] ("RGRHS", +2),Reaction.Reaction [("KRSK", +5)] ("JLSHT", +3),Reaction.Reaction [("DHJD", +4)] ("DTWF", +2),Reaction.Reaction [("PGJC", +9)] ("RNJCV", +9),Reaction.Reaction [("KCHWM", +1), ("DGXQJ", +10)] ("PWXFD", +4),Reaction.Reaction [("KSJPW", +6)] ("DHJD", +8),Reaction.Reaction [("DBGK", +6), ("ZPVDZ", +1)] ("BJLQG", +3),Reaction.Reaction [("WNVTR", +1), ("XRJH", +2)] ("ZPVDZ", +9),Reaction.Reaction [("DHJD", +3)] ("KVKM", +8),Reaction.Reaction [("HSCF", +2), ("TLRZ", +1)] ("QHGP", +9),Reaction.Reaction [("PLDS", +1), ("BJLQG", +7), ("WNVTR", +1)] ("XDQG", +3),Reaction.Reaction [("CTBV", +14), ("PLDS", +23), ("MCNR", +5)] ("TLGRN", +9),Reaction.Reaction [("PWXFD", +1)] ("DJSW", +7),Reaction.Reaction [("DJSW", +2)] ("MCNR", +6),Reaction.Reaction [("CTBV", +1), ("PGBK", +7), ("BDPJD", +5), ("DTWF", +5), ("PLDS", +12), ("RNJCV", +31), ("KVKM", +2)] ("DJLXD", +6),Reaction.Reaction [("XRJH", +2), ("FXLD", +2)] ("WHSGM", +2),Reaction.Reaction [("XPGP", +4), ("PWXFD", +12)] ("FXLD", +9),Reaction.Reaction [("LGVS", +2), ("VMVJS", +1), ("QNMV", +1)] ("HKXCV", +3),Reaction.Reaction [("WCWLK", +1)] ("TLRZ", +6),Reaction.Reaction [("ORE", +115)] ("TKMGN", +7),Reaction.Reaction [("TLGRN", +2), ("DHJD", +2), ("MCNR", +1)] ("SCZCQ", +9),Reaction.Reaction [("FVRFC", +13)] ("XBLQD", +5),Reaction.Reaction [("XDQG", +5), ("DZJLT", +1)] ("CPGS", +4),Reaction.Reaction [("XPGP", +5), ("DHJD", +1)] ("CTBV", +6),Reaction.Reaction [("XRJH", +1), ("KCHWM", +2), ("FXLD", +1)] ("FSRD", +9),Reaction.Reaction [("CTBV", +5), ("CDRP", +1), ("RNJCV", +5)] ("DZJLT", +6),Reaction.Reaction [("ORE", +151)] ("WCWLK", +6),Reaction.Reaction [("HKXCV", +4)] ("PLDS", +9),Reaction.Reaction [("KCHWM", +16)] ("VKPGK", +6),Reaction.Reaction [("VKPGK", +3)] ("HCMT", +1),Reaction.Reaction [("QMVLD", +5), ("HCMT", +8), ("CPXLQ", +25), ("JLSHT", +29), ("CPGS", +9), ("RHKVX", +8), ("DQTLW", +19), ("LWKJL", +5), ("DJLXD", +2), ("CVBQ", +14), ("SCZCQ", +7), ("FSRD", +17), ("JLHWQ", +3), ("XDQG", +6)] ("FUEL", +1),Reaction.Reaction [("FXLD", +1), ("VMVJS", +1)] ("NMWGH", +8),Reaction.Reaction [("KCHWM", +2), ("HSCF", +6)] ("KSJPW", +9),Reaction.Reaction [("DBGK", +2), ("NMWGH", +17)] ("JLHWQ", +1),Reaction.Reaction [("CDRP", +26)] ("DQTLW", +8),Reaction.Reaction [("PLDS", +2)] ("HPCR", +7),Reaction.Reaction [("LGVS", +6), ("DGXQJ", +21)] ("RHKVX", +4),Reaction.Reaction [("VFVBP", +6)] ("BZWFZ", +2),Reaction.Reaction [("XDQG", +2), ("BDPJD", +3), ("DJSW", +10), ("CGRFH", +1), ("HPCR", +3), ("RHKVX", +2), ("BZWFZ", +5), ("XBLQD", +13)] ("CVBQ", +7),Reaction.Reaction [("TKMGN", +8)] ("DGXQJ", +7),Reaction.Reaction [("JLSHT", +1), ("KSJPW", +20)] ("VMVJS", +7),Reaction.Reaction [("DJSW", +16), ("PGJC", +1), ("FXLD", +4)] ("WNVTR", +8)]
+
+> input14
+  |> List.map (r -> (Reaction.output r |> Tuple.at1, (Reaction.output r |> Tuple.at2, Reaction.inputs r |> Map.fromList)))
+  |> Map.fromList
+  |> getFuel +1
