@@ -1,3 +1,4 @@
+---
 namespace day1 where
   fuelRequiredByModule : Int -> Int
   fuelRequiredByModule mass =

@@ -1,3 +1,4 @@
+---
 namespace day8 where
   layers : Nat -> Nat -> [a] -> [[a]]
   layers m n image =

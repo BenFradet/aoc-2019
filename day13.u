@@ -1,3 +1,4 @@
+---
 processOutput : [Int] -> Map (Int, Int) Int
 processOutput output =
   go out acc = case out of

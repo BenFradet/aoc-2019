@@ -1,3 +1,4 @@
+---
 --type Reaction = { inputs : [(Text, Int)], output: (Text, Int) }
 
 getFuel : Map Text (Int, Map Text Int) -> Int -> Int

@@ -1,3 +1,4 @@
+---
 namespace day7 where
   select : [a] -> [(a, [a])]
   select xs = case xs of

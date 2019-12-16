@@ -1,3 +1,4 @@
+---
 --type State = { program : Map Int Int, pointer : Int, base : Int, out : [Int] }
 
 namespace day9 where

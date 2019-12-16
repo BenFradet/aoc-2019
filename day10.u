@@ -1,3 +1,4 @@
+---
 namespace day10 where
   gcd : Int -> Int -> Nat
   gcd a b =

@@ -1,3 +1,4 @@
+---
 namespace day2 where
 
   opCode : [Nat] -> (Nat -> Nat -> Nat) -> Nat -> Nat -> Nat -> [Nat]

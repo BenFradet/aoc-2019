@@ -1,3 +1,4 @@
+---
 type day6.RT a = Leaf | Node a [day6.RT a]
 
 namespace day6 where

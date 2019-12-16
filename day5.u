@@ -1,3 +1,4 @@
+---
 namespace day5 where
 
   abs : Int -> Nat

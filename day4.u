@@ -1,3 +1,4 @@
+---
 namespace day4 where
   digits : Nat -> [Nat]
   digits i =
