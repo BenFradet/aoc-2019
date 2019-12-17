@@ -1,3 +1,4 @@
+---
 replicatePattern : Nat -> [a] -> [a]
 replicatePattern n as =
   go as acc = case as of
