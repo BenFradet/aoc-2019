@@ -187,7 +187,25 @@ mainRoutine ps patterns =
           |> List.head
           |> Optional.orDefault ([], 0)
       go (List.drop (Tuple.at1 res |> List.size) ps) (Tuple.at2 res +: acc)
-  go ps [] |> List.reverse
+  go ps [] |> List.reverse |> List.map (i -> i + 65)
+
+interleave : a -> [a] -> [a]
+interleave a as = case as of
+  h +: [] -> [h]
+  h +: t -> [h, a] ++ interleave a t
+
+toChar : Nat -> [Nat]
+toChar n = digits n |> List.map (i -> i + 48)
+
+buildInput : [Nat] -> [[(Char, Nat)]] -> [Nat]
+buildInput mainRoutine patterns =
+  mr = interleave 44 mainRoutine
+  ps =
+    List.map (List.flatMap (p -> case p of (c, i) -> [44, Char.toNat c, 44] ++ (toChar i))) patterns
+      |> List.map (l -> List.uncons l |> Optional.map Tuple.at2 |> Optional.orDefault [])
+      |> interleave [10]
+      |> List.flatMap id
+  mr ++ [10] ++ ps
 
 text2 = "#######...#####
 #.....#...#...#
@@ -208,7 +226,8 @@ text2 = "#######...#####
 vs = visit text2
 > vs
 patterns = visit text2 |> (v -> [v]) |> findPatterns 3 5 |> List.head |> Optional.orDefault []
-> mainRoutine vs patterns
+mr = mainRoutine vs patterns
+> buildInput mr patterns |> List.map (Char.fromNat) |> take 20
 
 ---
 widthText2 = width text2
