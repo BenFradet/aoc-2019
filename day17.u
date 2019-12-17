@@ -37,3 +37,168 @@ intersections t =
 
 > intersections text
 > intersections text |> List.map (p -> case p of (i, j) -> i Nat.* j) |> List.foldl (Nat.+) 0
+
+start : [Char] -> ((Nat, Nat), (Int, Int))
+start t =
+  go cs i j = case cs of
+    h +: t | h == ?^ -> ((i, j), (+0, -1))
+    h +: t | h == ?v -> ((i, j), (+0, +1))
+    h +: t | h == ?> -> ((i, j), (+1, +0))
+    h +: t | h == ?< -> ((i, j), (-1, +0))
+    h +: t | h == ?\n -> go t 0 (j + 1)
+    h +: t -> go t (i + 1) j
+    _ -> ((0, 0), (+0, +0))
+  go t 0 0
+
+north : Nat -> Nat -> Nat -> Nat
+north i j w = if j == 0 then Nat.maxNat else abs ((Nat.toInt j) + -1) * w + i
+south : Nat -> Nat -> Nat -> Nat
+south i j w = (j + 1) * w + i
+east : Nat -> Nat -> Nat -> Nat
+east i j w = j * w + i + 1
+west : Nat -> Nat -> Nat -> Nat
+west i j w = if i == 0 then Nat.maxNat else j * w + (abs ((Nat.toInt i) + -1))
+
+candidates : Nat -> Nat -> Nat -> [Char] -> [(Int, Int)]
+candidates i j w cs =
+  flatten [
+    List.at (north i j w) cs |> Optional.map (c -> (c, (+0, -1))),
+    List.at (south i j w) cs |> Optional.map (c -> (c, (+0, +1))),
+    List.at (east i j w) cs |> Optional.map (c -> (c, (+1, +0))),
+    List.at (west i j w) cs |> Optional.map (c -> (c, (-1, +0)))
+  ] |> filter (v -> case v of (c, nd) -> c == ?#) |> List.map Tuple.at2
+
+find : a -> [a] -> Optional a
+find a as = case as of
+  h +: t | h == a -> Some h
+  h +: t -> find a t
+  _ -> None
+
+negate : (Int, Int) -> (Int, Int)
+negate p = case p of (i, j) -> (Int.negate i, Int.negate j)
+
+add : (Nat, Nat) -> (Int, Int) -> (Nat, Nat)
+add p d = case (p, d) of ((px, py), (dx, dy)) ->
+  (day5.abs ((Nat.toInt px) + dx), day5.abs ((Nat.toInt py) + dy))
+
+nextMove : Nat -> [Char] -> ((Nat, Nat), (Int, Int)) -> Optional (((Nat, Nat), (Int, Int)), ((Nat, Nat), (Int, Int)))
+nextMove w cs s = case s of ((px, py), (dx, dy)) ->
+  cds = candidates px py w cs |> filter (d -> not (d == (negate (dx, dy))))
+  find (dx, dy) cds
+    |> (o -> Optional.orElse o (List.uncons cds |> Optional.map Tuple.at1))
+    |> Optional.map (d -> (add (px, py) d, d))
+    |> Optional.map (p -> (p, p))
+
+nextMove' : Nat -> [Char] -> (Nat, (Nat, Nat), (Int, Int)) -> Optional ((Nat, (Nat, Nat), (Int, Int)), (Nat, (Nat, Nat), (Int, Int)))
+nextMove' w cs s = case s of (i, (px, py), (dx, dy)) ->
+  if i >= 80 then None
+  else
+    cds = candidates px py w cs |> filter (d -> not (d == (negate (dx, dy))))
+    find (dx, dy) cds
+      |> (o -> Optional.orElse o (List.uncons cds |> Optional.map Tuple.at1))
+      |> Optional.map (d -> (i + 1, add (px, py) d, d))
+      |> Optional.map (p -> (p, p))
+
+crossP : (Int, Int) -> (Int, Int) -> Int
+crossP p1 p2 = case (p1, p2) of ((x1, y1), (x2, y2)) ->
+  (x1 * y2) - (y1 * x2)
+
+--visit : [Char] -> [(Char, Nat)]
+visit t =
+  w = width t
+  s = start t
+  go acc e = case acc of (ds, pe) ->
+    if pe == e then
+      case List.uncons ds of
+        Some (h, t) -> (((Tuple.at1 h, (Tuple.at2 h) + 1)) +: t, pe)
+        _ -> ([(?R, 1)], pe)
+    else
+      a = crossP pe e
+      c = if a < +0 then ?L else ?R
+      ((c, 1) +: ds, e)
+  List.unfold s (nextMove w t)
+    |> List.map Tuple.at2
+    |> List.foldl go ([], Tuple.at2 s)
+    |> Tuple.at1
+    |> List.reverse
+
+indexOfSlice : [a] -> [a] -> Optional Nat
+indexOfSlice sub ls =
+  go' ss ls = case (ss, ls) of
+    (h1 +: t1, h2 +: t2) | h1 == h2 -> go' t1 t2
+    (h1 +: t1, h2 +: t2) -> false
+    ([], _) -> true
+    _ -> false
+  go i ls = case (sub, ls) of
+    (h1 +: t1, h2 +: t2) | h1 == h2 -> if go' t1 t2 then Some i else go (i + 1) t2
+    (_, h +: t) -> go (i + 1) t
+    _ -> None
+  go 0 ls
+
+split : [a] -> [a] -> [[a]]
+split delim as =
+  case indexOfSlice delim as of
+    None -> [as]
+    Some i ->
+      p = List.take i as
+      s = List.drop (i + (List.size delim)) as
+      p +: split delim s
+
+findPatterns : Nat -> Nat -> [[(Char, Nat)]] -> [[[(Char, Nat)]]]
+findPatterns maxPatterns maxLength ps =
+  f : [(Char, Nat)] -> Nat -> [[[(Char, Nat)]]]
+  f h n =
+    init = List.take n h
+    List.flatMap (split init) ps
+      |> filter (l -> List.size l > 0)
+      |> findPatterns (abs ((Nat.toInt maxPatterns) + -1)) maxLength
+      |> List.map (t -> init +: t)
+  case ps of
+    [] -> []
+    h +: t ->
+      if maxPatterns <= 0 then []
+      else
+        s = List.size h
+        List.range 1 (if maxLength < s then maxLength else s)
+          |> List.reverse
+          |> List.flatMap (n -> f h n)
+
+findPatterns' : Nat -> Nat -> [(Char, Nat)] -> [[(Char, Nat)]]
+findPatterns' maxPatterns maxLength ps = []
+
+text2 = "#######...#####
+#.....#...#...#
+#.....#...#...#
+......#...#...#
+......#...###.#
+......#.....#.#
+^########...#.#
+......#.#...#.#
+......#########
+........#...#..
+....#########..
+....#...#......
+....#...#......
+....#...#......
+....#####......" |> Text.toCharList
+
+> start text2
+> visit text2
+> indexOfSlice (List.range 10 14) (List.range 0 10)
+> split (List.range 1 4) (List.range 0 10)
+
+> visit text2 |> (v -> [v]) |> findPatterns 3 5
+
+---
+widthText2 = width text2
+> candidates 10 0 widthText2 text2
+
+---
+> north 0 6 widthText2
+> List.at (north 0 6 widthText2) text2
+> south 0 6 widthText2
+> List.at (south 0 6 widthText2) text2
+> east 0 6 widthText2
+> List.at (east 0 6 widthText2) text2
+> west 0 6 widthText2
+> List.at (west 0 6 widthText2) text2
