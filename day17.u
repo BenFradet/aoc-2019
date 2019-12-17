@@ -162,6 +162,33 @@ findPatterns maxPatterns maxLength ps =
           |> List.reverse
           |> List.flatMap (f h)
 
+zipWithIndex : [a] -> [(a, Nat)]
+zipWithIndex as =
+  go as i acc = case as of
+    h +: t -> go t (i + 1) ((h, i) +: acc)
+    _ -> acc
+  go as 0 [] |> List.reverse
+
+startsWith : [a] -> [a] -> Boolean
+startsWith part ps = case (part, ps) of
+  (h1 +: t1, h2 +: t2) | h1 == h2 -> startsWith t1 t2
+  ([], _) -> true
+  _ -> false
+
+mainRoutine : [(Char, Nat)] -> [[(Char, Nat)]] -> [Nat]
+mainRoutine ps patterns =
+  zipped = zipWithIndex patterns
+  go ps acc = case ps of
+    [] -> acc
+    _ ->
+      res =
+        zipped
+          |> filter (p -> case p of (part, i) -> startsWith part ps)
+          |> List.head
+          |> Optional.orDefault ([], 0)
+      go (List.drop (Tuple.at1 res |> List.size) ps) (Tuple.at2 res +: acc)
+  go ps [] |> List.reverse
+
 text2 = "#######...#####
 #.....#...#...#
 #.....#...#...#
@@ -180,7 +207,8 @@ text2 = "#######...#####
 
 vs = visit text2
 > vs
-> visit text2 |> (v -> [v]) |> findPatterns 3 5 |> List.head
+patterns = visit text2 |> (v -> [v]) |> findPatterns 3 5 |> List.head |> Optional.orDefault []
+> mainRoutine vs patterns
 
 ---
 widthText2 = width text2
