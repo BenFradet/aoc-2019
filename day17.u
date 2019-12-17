@@ -144,9 +144,8 @@ split delim as =
       s = List.drop (i + (List.size delim)) as
       p +: split delim s
 
-findPatterns : Nat -> Nat -> [[(Char, Nat)]] -> [[[(Char, Nat)]]]
+findPatterns : Nat -> Nat -> [[a]] -> [[[a]]]
 findPatterns maxPatterns maxLength ps =
-  f : [(Char, Nat)] -> Nat -> [[[(Char, Nat)]]]
   f h n =
     init = List.take n h
     List.flatMap (split init) ps
@@ -154,17 +153,14 @@ findPatterns maxPatterns maxLength ps =
       |> findPatterns (abs ((Nat.toInt maxPatterns) + -1)) maxLength
       |> List.map (t -> init +: t)
   case ps of
-    [] -> []
+    [] -> [[]]
     h +: t ->
-      if maxPatterns <= 0 then []
+      if maxPatterns <= 0 then [[]]
       else
         s = List.size h
-        List.range 1 (if maxLength < s then maxLength else s)
+        List.range 2 (if (maxLength + 1) < (s + 1) then (maxLength + 1) else (s + 1))
           |> List.reverse
-          |> List.flatMap (n -> f h n)
-
-findPatterns' : Nat -> Nat -> [(Char, Nat)] -> [[(Char, Nat)]]
-findPatterns' maxPatterns maxLength ps = []
+          |> List.flatMap (f h)
 
 text2 = "#######...#####
 #.....#...#...#
@@ -182,12 +178,9 @@ text2 = "#######...#####
 ....#...#......
 ....#####......" |> Text.toCharList
 
-> start text2
-> visit text2
-> indexOfSlice (List.range 10 14) (List.range 0 10)
-> split (List.range 1 4) (List.range 0 10)
-
-> visit text2 |> (v -> [v]) |> findPatterns 3 5
+vs = visit text2
+> vs
+> visit text2 |> (v -> [v]) |> findPatterns 3 5 |> List.head
 
 ---
 widthText2 = width text2
