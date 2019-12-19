@@ -1,3 +1,20 @@
+---
+beam : [Int] -> (Int, Int) -> Boolean
+beam program ip = case ip of (x, y) ->
+  not ( (day17.intCode [x, y] program |> List.uncons |> Optional.map Tuple.at1) == Some +0 )
+
+findTopLeft : [Int] -> (Int, Int) -> (Int, Int)
+findTopLeft program size = case size of (n, m) ->
+  off = (negate (n + -1), m + -1)
+  go p =
+    if beam program (day3.add p off) then day3.add p (negate (n + -1), +0)
+    else if beam program (day3.add p (+1, +0)) then go (day3.add p (+1, +0))
+    else go (day3.add p (+0, +1))
+  go (+100, +100)
+
+> negate (+100 + -1)
+> findTopLeft input19 (+100, +100) |> (v -> case v of (x, y) -> (x * +10000) + y)
+
 pairs : [a] -> [b] -> [(a, b)]
 pairs as bs =
   go bs acc a = case bs of
