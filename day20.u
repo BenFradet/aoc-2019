@@ -1,6 +1,66 @@
+---
+> input20 |> Text.toCharList |> parseInput |> walkR 119 123
+
+walkR : Nat -> Nat -> Input -> Optional (Node, Nat)
+walkR w h i = bfsGen (start i |> node) (neighborsR i w h) (end i |> node)
+
+neighborsR : Input -> Nat -> Nat -> Node -> [Node]
+neighborsR i w h n = case n of Node.Node p l ->
+  moves =
+    [(+0, +1), (+0, -1), (+1, +0), (-1, +0)]
+      |> List.map (day17.add p)
+      |> day16.filter (w -> not ((Input.lab i |> Map.lookup w) == Some W))
+      |> List.map (p -> Node.Node p l)
+  tp = case Input.lab i |> Map.lookup p of
+    Some P id ->
+      out =
+        Input.ps i
+          |> Map.lookup (P id)
+          |> Optional.orDefault []
+          |> day16.filter (xy -> not (p == xy))
+          |> day16.head
+      case out of
+        Some p ->
+          if isPortalInside w h p then Node.Node p (l + +1) |> Some
+          else if l > +0 then Node.Node p (l + -1) |> Some
+          else None
+        _ -> None
+    _ -> None
+  day6.flatten [tp] ++ moves
+
+isPortalInside : Nat -> Nat -> (Nat, Nat) -> Boolean
+isPortalInside w h p =
+  inf p (abs (Nat.toInt w + -4), abs (Nat.toInt h + -4)) && (sup p (3, 3))
+
+sup : (Nat, Nat) -> (Nat, Nat) -> Boolean
+sup p1 p2 = case (p1, p2) of ((x1, y1), (x2, y2)) -> x1 > x2 && (y1 > y2)
+
+inf : (Nat, Nat) -> (Nat, Nat) -> Boolean
+inf p1 p2 = case (p1, p2) of ((x1, y1), (x2, y2)) -> x1 < x2 && (y1 < y2)
+
+type Node = { p: (Nat, Nat), l: Int }
+
+node : (Nat, Nat) -> Node
+node p = Node.Node p +0
+
+bfsGen : a -> (a -> [a]) -> a -> Optional (a, Nat)
+bfsGen start f end =
+  go visited toVisit =
+    neighbors = List.flatMap ( p -> case p of (n, d) ->
+      f n |> List.map (p -> (p, (d + 1)))) (Map.toList toVisit)
+    nVisited = Map.union visited toVisit
+
+    case Map.lookup end toVisit of
+      Some d -> Some ((end, d))
+      _ ->
+        nToVisit = day16.filter (p -> case p of (n, d) -> not (Map.contains n visited)) neighbors
+        case nToVisit of
+          [] -> None
+          _ -> go nVisited (Map.fromList nToVisit)
+  go Map.empty (Map.insert start 0 Map.empty)
+
 > input20 |> Text.toCharList |> parseInput |> walk
 
----
 input20 = "                                       L N           Q     O     W   M       F                                        #
                                        W G           V     W     F   Q       F                                        #
   #####################################.#.###########.#####.#####.###.#######.####################################### #
