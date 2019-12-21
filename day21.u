@@ -1,3 +1,18 @@
+---
+> day17.intCode input21b program21
+
+input21b = "OR A T
+AND B T
+AND C T
+NOT T J
+AND D J
+NOT J T
+OR E T
+OR H T
+AND T J
+RUN
+" |> Text.toCharList |> List.map (c -> Char.toNat c |> Nat.toInt)
+
 > day17.intCode input21 program21
 
 input21 = "NOT C J
