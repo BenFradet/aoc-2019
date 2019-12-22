@@ -1,0 +1,182 @@
+---
+> List.range 0 10007 |> runInput input22 |> day17.zipWithIndex |> day16.filter (p -> case p of (e, i) -> e == 2019)
+
+
+input22 = "cut -135
+deal with increment 38
+deal into new stack
+deal with increment 29
+cut 120
+deal with increment 30
+deal into new stack
+cut -7198
+deal into new stack
+deal with increment 59
+cut -8217
+deal with increment 75
+cut 4868
+deal with increment 29
+cut 4871
+deal with increment 2
+deal into new stack
+deal with increment 54
+cut 777
+deal with increment 40
+cut -8611
+deal with increment 3
+cut -5726
+deal with increment 57
+deal into new stack
+deal with increment 41
+deal into new stack
+cut -5027
+deal with increment 12
+cut -5883
+deal with increment 45
+cut 9989
+deal with increment 14
+cut 6535
+deal with increment 18
+cut -5544
+deal with increment 29
+deal into new stack
+deal with increment 64
+deal into new stack
+deal with increment 41
+deal into new stack
+deal with increment 6
+cut 4752
+deal with increment 8
+deal into new stack
+deal with increment 26
+cut -6635
+deal with increment 10
+deal into new stack
+cut -3830
+deal with increment 48
+deal into new stack
+deal with increment 39
+cut -4768
+deal with increment 65
+deal into new stack
+cut -5417
+deal with increment 15
+cut -4647
+deal into new stack
+cut -3596
+deal with increment 17
+cut -3771
+deal with increment 50
+cut 1682
+deal into new stack
+deal with increment 20
+deal into new stack
+deal with increment 22
+deal into new stack
+deal with increment 3
+cut 8780
+deal with increment 52
+cut 7478
+deal with increment 9
+cut -8313
+deal into new stack
+cut 742
+deal with increment 19
+cut 9982
+deal into new stack
+deal with increment 68
+cut 9997
+deal with increment 23
+cut -240
+deal with increment 54
+cut -7643
+deal into new stack
+deal with increment 6
+cut -3493
+deal with increment 74
+deal into new stack
+deal with increment 75
+deal into new stack
+deal with increment 40
+cut 596
+deal with increment 6
+cut -4957
+deal into new stack"
+
+---
+runInput : Text -> [a] -> [a]
+runInput t as =
+  is = day6.split ?\n t |> List.reverse
+  f acc e =
+    if startsWith "deal with increment" e then
+      runInstr (i -> dealWithIncrement (abs i) acc) "deal with increment" e acc
+    else if startsWith "cut" e then
+      runInstr (i -> cut i acc) "cut" e acc
+    else
+      dealIntoNewStack acc
+  List.foldl f as is
+
+runInstr : (Int -> [a]) -> Text -> Text -> [a] -> [a]
+runInstr i subT t as =
+  Map.lookup subT lengths
+    |> Optional.orDefault 0
+    |> (n -> Text.drop n t)
+    |> Int.fromText
+    |> Optional.map i
+    |> Optional.orDefault as
+
+lengths : Map Text Nat
+lengths =
+  [
+    ("deal with increment", Text.size "deal with increment"),
+    ("cut", Text.size "cut")
+  ] |> Map.fromList
+
+startsWith : Text -> Text -> Boolean
+startsWith t1 t2 =
+  day17.startsWith (Text.toCharList t1) (Text.toCharList t2)
+
+test> tests.day22.runInput.ex1 = run ( expect ( List.range 0 10 |> runInput "deal with increment 7
+deal into new stack
+deal into new stack" == [0, 3, 6, 9, 2, 5, 8, 1, 4, 7] ) )
+test> tests.day22.runInput.ex2 = run ( expect ( List.range 0 10 |> runInput "cut 6
+deal with increment 7
+deal into new stack" == [3, 0, 7, 4, 1, 8, 5, 2, 9, 6] ) )
+test> tests.day22.runInput.ex3 = run ( expect ( List.range 0 10 |> runInput "deal with increment 7
+deal with increment 9
+cut -2" == [6, 3, 0, 7, 4, 1, 8, 5, 2, 9] ) )
+test> tests.day22.runInput.ex4 = run (expect ( List.range 0 10 |> runInput "deal into new stack
+cut -2
+deal with increment 7
+cut 8
+cut -4
+deal with increment 7
+cut 3
+deal with increment 9
+deal with increment 3
+cut -1" == [9, 2, 5, 8, 1, 4, 7, 0, 3, 6] ) )
+
+---
+dealIntoNewStack : [a] -> [a]
+dealIntoNewStack as = List.reverse as
+
+cut : Int -> [a] -> [a]
+cut n as =
+  an = abs n
+  if n > +0 then List.drop an as |> (l -> l ++ List.take an as)
+  else
+    nn = List.size as |> (s -> s - an) |> abs
+    List.drop nn as |> (l -> l ++ List.take nn as)
+
+dealWithIncrement : Nat -> [a] -> [a]
+dealWithIncrement n as =
+  s = List.size as
+  go i as acc = case as of
+    h +: t -> List.replace (Nat.mod i s) h acc |> go (i + n) t
+    _ -> acc
+  day16.head as |> day3.replicate s |> day6.flatten |> go 0 as
+
+use test.v1
+test> tests.day22.cut.ex1 = run ( expect ( List.range 0 10 |> cut +3 == [3, 4, 5, 6, 7, 8, 9, 0, 1, 2] ) )
+test> tests.day22.cut.ex2 = run ( expect ( List.range 0 10 |> cut -4 == [6, 7, 8, 9, 0, 1, 2, 3, 4, 5] ) )
+test> tests.day22.dwi.ex1 = run ( expect ( List.range 0 10 |> dealWithIncrement 3 == [0, 7, 4, 1, 8, 5, 2, 9, 6, 3] ) )
