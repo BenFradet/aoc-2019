@@ -1,4 +1,90 @@
 ---
+--type LF a = LF a a a
+--type Technique a = DINS | C a | DWI a
+
+> run input22 +119315717514047 101741582076661 +2020
+
+run : Text -> Int -> Nat -> Int -> Optional Int
+run t deckSize times idx =
+  parseInput t
+    |> List.map (toLF deckSize)
+    |> List.foldl (lf1 -> lf2 -> compose lf1 lf2 |> Optional.orDefault lf1) (LF +1 +0 deckSize)
+    |> funPow times
+    |> Optional.flatMap inverse
+    |> Optional.map (apply idx)
+
+parseInput : Text -> [Technique Int]
+parseInput t =
+  day6.split ?\n t |> List.map parseLine |> day6.flatten
+
+toLF : Int -> Technique Int -> LF Int
+toLF deckSize t = case t of
+  DINS -> LF -1 -1 deckSize
+  C a -> LF +1 (negate a) deckSize
+  DWI a -> LF a +0 deckSize
+
+apply : Int -> LF Int -> Int
+apply x lf = case lf of LF a b c -> Int.mod ((a * x) Int.+ b) c
+
+-- lf2 (lf1) / lf1 . lf2
+compose : LF Int -> LF Int -> Optional (LF Int)
+compose lf1 lf2 = case (lf1, lf2) of
+  (LF a1 b1 c1, LF a2 b2 c2) | c1 == c2 ->
+    LF (Int.mod (a1 * a2) c1) (Int.mod ((a2 * b1) + b2) c1) c1 |> Some
+  _ -> None
+
+inverse : LF Int -> Optional (LF Int)
+inverse lf = case lf of LF a b c ->
+  modInv a c
+    |> Optional.map (ai -> LF ai (Int.mod (ai * (negate b)) c) c)
+
+-- exp by squaring
+funPow : Nat -> LF Int -> Optional (LF Int)
+funPow n lf = case (n, lf) of
+  (0, LF a b c) -> LF +1 +0 c |> Some
+  (1, lf) -> lf |> Some
+  (n, lf) ->
+    a = n / 2
+    b = Nat.mod n 2
+    lf' = funPow a lf
+    case b of
+      0 -> Optional.flatMap (lf' -> compose lf' lf') lf'
+      _ -> Optional.flatMap (lf' -> compose lf' lf') lf' |> Optional.flatMap (lf' -> compose lf lf')
+
+
+-- (gcd p q, k l) => k*p + l*q = gcd p q
+gcd : Int -> Int -> (Int, Int, Int)
+gcd a b = case a of
+  +0 -> (b, +1, +1)
+  +1 -> (+1, +1, +0)
+  a | a > b -> case gcd b a of (g, l, k) -> (g, k, l)
+  _ ->
+    n = b / a
+    m = Int.mod b a
+    case gcd a m of (g, p, l) -> (g, p - (n * l), l)
+
+modInv : Int -> Int -> Optional Int
+modInv a b = case gcd a b of
+  (+1, k, l) -> Int.mod k b |> Some
+  _ -> None
+
+parseLine : Text -> Optional (Technique Int)
+parseLine t =
+  if startsWith "deal with increment" t then
+    extractNumber "deal with increment" t |> Optional.map DWI
+  else if startsWith "cut" t then
+    extractNumber "cut" t |> Optional.map C
+  else
+    Some DINS
+
+extractNumber : Text -> Text -> Optional Int
+extractNumber subT t =
+  Map.lookup subT lengths
+    |> Optional.orDefault 0
+    |> (n -> Text.drop n t)
+    |> Int.fromText
+
+---
 > List.range 0 10007 |> runInput input22 |> day17.zipWithIndex |> day16.filter (p -> case p of (e, i) -> e == 2019)
 
 
