@@ -1,0 +1,103 @@
+> "...#.
+#.##.
+#..##
+#.###
+##..." |> parseInput |> life
+
+life : Map (Nat, Nat) Boolean -> (Nat, Map (Nat, Nat) Boolean)
+life start =
+  go s acc =
+    ns = evolve s
+    r = rating 5 ns
+    case Map.lookup r acc of
+      Some s -> (r, s)
+      _ -> Map.insert r ns acc |> go ns
+  go start Map.empty
+
+test> tests.day24.life.ex1 = run ( expect ( "....#
+#..#.
+#..##
+..#..
+#...." |> parseInput |> life |> (p -> case p of (n, s) -> (n, render s)) == (2129920, "\n.....\n.....\n.....\n#....\n.#...") ) )
+
+rating : Nat -> Map (Nat, Nat) Boolean -> Nat
+rating w s =
+  f acc e = case e of
+    ((x, y), true) -> x + (y * w) |> pow2 |> (p -> p + acc)
+    _ -> acc
+  Map.toList s |> List.foldl f 0
+
+use test.v1
+
+test> tests.day24.evolve.ex1 = run ( expect ( "....#
+#..#.
+#..##
+..#..
+#...." |> parseInput |> evolve |> render == "\n#..#.\n####.\n###.#\n##.##\n.##.." ) )
+test> tests.day24.evolve.ex2 = run ( expect ( "#..#.
+####.
+###.#
+##.##
+.##.." |> parseInput |> evolve |> render == "\n#####\n....#\n....#\n...#.\n#.###" ) )
+test> tests.day24.evolve.ex3 = run ( expect ( "#####
+....#
+....#
+...#.
+#.###" |> parseInput |> evolve |> render == "\n#....\n####.\n...##\n#.##.\n.##.#" ) )
+test> tests.day24.evolve.ex4 = run ( expect ( "#....
+####.
+...##
+#.##.
+.##.#" |> parseInput |> evolve |> render == "\n####.\n....#\n##..#\n.....\n##..." ) )
+
+render : Map (Nat, Nat) Boolean -> Text
+render m =
+  go cs acc = case cs of
+    ((0, j), f) +: t -> [(if f then ?# else ?.), ?\n] ++ acc |> go t
+    ((i, j), f) +: t -> (if f then ?# else ?.) +: acc |> go t
+    _ -> acc
+  Map.toList m |> List.sortBy (p -> case p of ((x, y), f) -> y) |> (cs -> go cs []) |> List.reverse |> Text.fromCharList
+
+evolve : Map (Nat, Nat) Boolean -> Map (Nat, Nat) Boolean
+evolve s =
+  f acc e = case e of
+    (p, true) ->
+      if adjacentBugs p s == 1 then Map.insert p true acc
+      else Map.insert p false acc
+    (p, false) ->
+      size = adjacentBugs p s
+      if size == 1 || (size == 2) then Map.insert p true acc
+      else Map.insert p false acc
+  Map.toList s
+    |> List.foldl f Map.empty
+
+adjacentBugs : (Nat, Nat) -> Map (Nat, Nat) Boolean -> Nat
+adjacentBugs p m =
+  adjacents p
+    |> List.map (p -> Map.lookup p m)
+    |> day6.flatten
+    |> day16.filter id
+    |> List.size
+
+adjacents : (Nat, Nat) -> [(Nat, Nat)]
+adjacents p = case p of (x, y) ->
+  f acc e = case e of (xe, ye) ->
+    nx = (Nat.toInt x) + xe
+    ny = (Nat.toInt y) + ye
+    if nx >= +0 && (ny >= +0) then (day5.abs nx, day5.abs ny) +: acc
+    else acc
+  [(+0, -1), (+0, +1), (-1, +0), (+1, +0)]
+    |> List.foldl f []
+
+parseInput : Text -> Map (Nat, Nat) Boolean
+parseInput t =
+  go i j cs acc = case cs of
+    h +: t -> case h of
+      ?\n -> go 0 (j + 1) t acc
+      ?# -> Map.insert (i, j) true acc |> go (i + 1) j t
+      _ -> Map.insert (i, j) false acc |> go (i + 1) j t
+    _ -> acc
+  Text.toCharList t |> (cs -> go 0 0 cs Map.empty)
+
+pow2 : Nat -> Nat
+pow2 n = Nat.toInt n |> Int.toFloat |> Float.pow 2.0 |> truncate |> abs
