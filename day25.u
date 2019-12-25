@@ -1,0 +1,17 @@
+---
+power : Set a -> Set (Set a)
+power s =
+  go s acc = case s of
+    h +: t -> acc ++ (List.map (s -> h +: s) acc) |> go t
+    _ -> acc
+  go (Set.toList s) [[]]
+    |> List.map Set.fromList
+    |> Set.fromList
+
+s =
+  ["ornament", "hologram", "dark matter", "klein bottle", "hypercube", "fuel cell", "easter egg", "cake" ]
+    |> Set.fromList
+> power s |> Set.toList |> List.map (Set.toList) |> day16.filter (l -> List.size l == 4)
+
+-- [easter egg, hologram, dark matter, klein bottle] [ornament, cake, hypercube, fuel cell]
+
