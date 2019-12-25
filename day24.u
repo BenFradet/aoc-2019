@@ -1,3 +1,92 @@
+---
+> "...#.
+#.##.
+#..##
+#.###
+##..." |> parseInput |> lifeR 200 |> count
+
+count : Map Int (Map (Nat, Nat) Boolean) -> Nat
+count m =
+  Map.toList m
+    |> List.flatMap (p -> case p of (l, m) -> Map.toList m |> List.map Tuple.at2)
+    |> day8.count true
+
+lifeR : Nat -> Map (Nat, Nat) Boolean -> Map Int (Map (Nat, Nat) Boolean)
+lifeR n start =
+  go i acc =
+    if i >= n then evolveR (Nat.toInt i) acc
+    else evolveR (Nat.toInt i) acc |> go (i + 1)
+  [(+0, start)] |> Map.fromList |> go 0
+
+renderR : Map Int (Map (Nat, Nat) Boolean) -> Text
+renderR m =
+  f acc e = case e of (l, m) ->
+    acc ++ "level " ++ (Int.toText l) ++ ": " ++ (render m) ++ "\n"
+  Map.toList m |> List.foldl f ""
+
+evolveR : Int -> Map Int (Map (Nat, Nat) Boolean) -> Map Int (Map (Nat, Nat) Boolean)
+evolveR l s =
+  f l acc e = case e of
+    ((2, 2), f) -> Map.insert (2, 2) false acc
+    (p, true) ->
+      if adjacentBugsR (l, p) s == 1 then Map.insert p true acc
+      else Map.insert p false acc
+    (p, false) ->
+      size = adjacentBugsR (l, p) s
+      if size == 1 || (size == 2) then Map.insert p true acc
+      else Map.insert p false acc
+  Map.toList s
+    |> List.map (p -> case p of (l, m) -> (l, Map.toList m |> List.foldl (f l) Map.empty))
+    |> Map.fromList
+    |> Map.insert (l + +1) blank
+    |> Map.insert ((l + +1) |> negate) blank
+
+adjacentsR : (Int, (Nat, Nat)) -> [(Int, (Nat, Nat))]
+adjacentsR p = case p of (l, (x, y)) ->
+  f acc e = case e of (xe, ye) ->
+    nx = (Nat.toInt x) + xe
+    ny = (Nat.toInt y) + ye
+    g f = List.range 0 size |> List.map (x -> (l + +1, f x))
+    case (nx, ny) of
+      (+2, +2) -> case (x, y) of
+        (2, 1) -> g (x -> (x, 0)) ++ acc
+        (1, 2) -> g (y -> (0, y)) ++ acc
+        (2, 3) -> g (x -> (x, 4)) ++ acc
+        (3, 2) -> g (y -> (4, y)) ++ acc
+      (-1, y) -> (l + -1, (1, 2)) +: acc
+      (+5, y) -> (l + -1, (3, 2)) +: acc
+      (x, -1) -> (l + -1, (2, 1)) +: acc
+      (x, +5) -> (l + -1, (2, 3)) +: acc
+      (x, y)  -> (l, (day5.abs nx, day5.abs ny)) +: acc
+  [(+0, -1), (+0, +1), (-1, +0), (+1, +0)]
+    |> List.foldl f []
+
+adjacentBugsR : (Int, (Nat, Nat)) -> Map Int (Map (Nat, Nat) Boolean) -> Nat
+adjacentBugsR p m =
+  adjacentsR p
+    |> List.map (p -> case p of (l, c) -> Map.lookup l m |> Optional.flatMap (Map.lookup c))
+    |> day8.count (Some true)
+
+---
+
+blank : Map (Nat, Nat) Boolean
+blank =
+  day19.pairs (List.range 0 size) (List.range 0 size)
+    |> List.map (p -> (p, false))
+    |> Map.fromList
+
+---
+size : Nat
+size = 5
+
+test> tests.day24.adjacentsR.ex1 = run ( expect ( adjacentsR (+0, (3, 3)) == [(+0, (4, 3)), (+0, (2, 3)), (+0, (3, 4)), (+0, (3, 2))] ) )
+test> tests.day24.adjacentsR.ex2 = run ( expect ( adjacentsR (+0, (1, 1)) == [(+0, (2, 1)), (+0, (0, 1)), (+0, (1, 2)), (+0, (1, 0))] ) )
+test> tests.day24.adjacentsR.ex3 = run ( expect ( adjacentsR (+0, (3, 0)) == [(+0, (4, 0)), (+0, (2, 0)), (+0, (3, 1)), (+1, (2, 1))] ) )
+test> tests.day24.adjacentsR.ex4 = run ( expect ( adjacentsR (+0, (4, 0)) == [(+1, (3, 2)), (+0, (3, 0)), (+0, (4, 1)), (+1, (2, 1))] ) )
+test> tests.day24.adjacentsR.ex5 = run ( expect ( adjacentsR (+0, (3, 2)) == [ (+0, (4, 2)), (-1, (4, 0)), (-1, (4, 1)), (-1, (4, 2)), (-1, (4, 3)), (-1, (4, 4)), (+0, (3, 3)), (+0, (3, 1)) ]
+
+--- p1
+
 > "...#.
 #.##.
 #..##
